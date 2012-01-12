@@ -5517,16 +5517,25 @@ f.close()
       output = Popen([NODE_JS, COFFEESCRIPT, VARIABLE_ELIMINATOR], stdin=PIPE, stdout=PIPE).communicate(input)[0]
       self.assertIdentical(expected, output)
 
+    def test_fix_closure(self):
+      input = path_from_root('tests', 'test-fix-closure.js')
+      expected = path_from_root('tests', 'test-fix-closure.out.js')
+      Popen(['python', path_from_root('tools', 'fix_closure.py'), input, 'out.js']).communicate(input)
+      output = open('out.js').read()
+      assert '0,uninline_Q_14782,0' in output
+      assert 'function(a,c)' not in output # should be uninlined, so it gets a name
+      assert run_js(input) == run_js('out.js')
+
     def test_js_optimizer(self):
       for input, expected, passes in [
-        (open(path_from_root('tools', 'test-js-optimizer.js')).read(), open(path_from_root('tools', 'test-js-optimizer-output.js')).read(),
+        (path_from_root('tools', 'test-js-optimizer.js'), open(path_from_root('tools', 'test-js-optimizer-output.js')).read(),
          ['hoistMultiples', 'loopOptimizer', 'unGlobalize', 'removeAssignsToUndefined', 'simplifyExpressionsPre', 'simplifyExpressionsPost']),
-        (open(path_from_root('tools', 'test-js-optimizer-t2c.js')).read(), open(path_from_root('tools', 'test-js-optimizer-t2c-output.js')).read(),
+        (path_from_root('tools', 'test-js-optimizer-t2c.js'), open(path_from_root('tools', 'test-js-optimizer-t2c-output.js')).read(),
          ['simplifyExpressionsPre', 'optimizeShiftsConservative']),
-        (open(path_from_root('tools', 'test-js-optimizer-t2.js')).read(), open(path_from_root('tools', 'test-js-optimizer-t2-output.js')).read(),
+        (path_from_root('tools', 'test-js-optimizer-t2.js'), open(path_from_root('tools', 'test-js-optimizer-t2-output.js')).read(),
          ['simplifyExpressionsPre', 'optimizeShiftsAggressive']),
       ]:
-        output = Popen([NODE_JS, JS_OPTIMIZER] + passes, stdin=PIPE, stdout=PIPE).communicate(input)[0]
+        output = Popen([NODE_JS, JS_OPTIMIZER, input] + passes, stdin=PIPE, stdout=PIPE).communicate()[0]
         self.assertIdentical(expected, output.replace('\n\n', '\n'))
 
 elif 'benchmark' in str(sys.argv):
